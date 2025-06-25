@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 import random
 
 # ========== CONFIGURATION ==========
-api_key = "YOUR_API_KEY"  # Replace with your own key
+api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your own key
 
 # ========== SETUP YOUTUBE API ==========
 @st.cache_data
