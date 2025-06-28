@@ -1,9 +1,10 @@
 import streamlit as st
 from googleapiclient.discovery import build
 import random
+import re
 
 # ========== CONFIGURATION ==========
-api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your own key
+api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your key
 
 # ========== SETUP YOUTUBE API ==========
 @st.cache_data
@@ -42,27 +43,51 @@ def match_and_suggest(comments, keyword_reply_dict):
             continue
     return suggestions
 
+def extract_video_id(link_or_id):
+    """
+    Extract YouTube video ID from full link or just the ID.
+    Supports:
+    - https://www.youtube.com/watch?v=UBqy7m1Ejc0
+    - https://youtu.be/UBqy7m1Ejc0
+    - https://youtube.com/shorts/UBqy7m1Ejc0
+    - UBqy7m1Ejc0
+    """
+    patterns = [
+        r"v=([a-zA-Z0-9_-]{11})",
+        r"youtu\.be/([a-zA-Z0-9_-]{11})",
+        r"youtube\.com/shorts/([a-zA-Z0-9_-]{11})",
+        r"youtube\.com/embed/([a-zA-Z0-9_-]{11})",
+        r"^([a-zA-Z0-9_-]{11})$"
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, link_or_id)
+        if match:
+            return match.group(1)
+    return None
+
 # ========== STREAMLIT UI ==========
 
 st.title("💬 YouTube Comment Reply Generator (Custom Keywords)")
 
-# 📘 Example + Help for new users
+# 📘 Quick Start Instructions
 st.markdown("""
 ### 📘 Quick Start Example
 - **Step 1:** From a YouTube link like:  
   `https://www.youtube.com/watch?v=**zAULhNrnuL8**`  
-  👉 **Copy only the part after `=`**, which is: `zAULhNrnuL8`  
-  👉 Paste it below where it says *"Enter YouTube Video ID"*
-  
+  👉 **Copy and paste the full link or just `zAULhNrnuL8`** below  
+  ✅ Also supports links from YouTube app or shorts!
+
 - **Step 2:** Enter keywords and replies like:  
   `Keyword: dollar` → `Reply: Try switching to Yuan?`  
   `Keyword: war` → `Reply: War impacts everything. Stay informed!`
 """)
 st.markdown("---")
 
-# 🎥 User input
-video_id = st.text_input("🎥 Enter YouTube Video ID", value="zAULhNrnuL8")
+# 🎥 User input: Full link or video ID
+user_input_link = st.text_input("🎥 Paste YouTube link or video ID", value="https://youtu.be/zAULhNrnuL8")
+video_id = extract_video_id(user_input_link)
 
+# 🧠 Keyword → Reply input
 st.markdown("### 🧠 Define Your Keyword → Reply Pairs")
 num_pairs = st.number_input("How many keyword → reply pairs do you want?", min_value=1, max_value=10, value=3)
 
@@ -77,9 +102,11 @@ for i in range(num_pairs):
     if keyword and reply:
         keyword_reply_dict[keyword.strip().lower()] = reply.strip()
 
-# 🔁 Fetch & Suggest
+# 🔁 Process Comments
 if st.button("Fetch Comments and Suggest Replies"):
-    if not keyword_reply_dict:
+    if not video_id:
+        st.error("⚠️ Could not extract a valid YouTube video ID. Please check your link.")
+    elif not keyword_reply_dict:
         st.warning("⚠️ Please enter at least one keyword and reply pair.")
     else:
         with st.spinner("🔄 Fetching comments..."):
