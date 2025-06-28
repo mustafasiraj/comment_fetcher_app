@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 import random
 
 # ========== CONFIGURATION ==========
-api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your key
+api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your own key
 
 # ========== SETUP YOUTUBE API ==========
 @st.cache_data
@@ -44,12 +44,26 @@ def match_and_suggest(comments, keyword_reply_dict):
 
 # ========== STREAMLIT UI ==========
 
-st.title("💬 Custom Keyword-Based YouTube Comment Responder")
+st.title("💬 YouTube Comment Reply Generator (Custom Keywords)")
 
-video_id = st.text_input("🎥 Enter YouTube Video ID", value="E-sFqGTpcNE")
+# 📘 Example + Help for new users
+st.markdown("""
+### 📘 Quick Start Example
+- **Step 1:** From a YouTube link like:  
+  `https://www.youtube.com/watch?v=**zAULhNrnuL8**`  
+  👉 **Copy only the part after `=`**, which is: `zAULhNrnuL8`  
+  👉 Paste it below where it says *"Enter YouTube Video ID"*
+  
+- **Step 2:** Enter keywords and replies like:  
+  `Keyword: dollar` → `Reply: Try switching to Yuan?`  
+  `Keyword: war` → `Reply: War impacts everything. Stay informed!`
+""")
+st.markdown("---")
+
+# 🎥 User input
+video_id = st.text_input("🎥 Enter YouTube Video ID", value="zAULhNrnuL8")
 
 st.markdown("### 🧠 Define Your Keyword → Reply Pairs")
-
 num_pairs = st.number_input("How many keyword → reply pairs do you want?", min_value=1, max_value=10, value=3)
 
 keyword_reply_dict = {}
@@ -63,11 +77,12 @@ for i in range(num_pairs):
     if keyword and reply:
         keyword_reply_dict[keyword.strip().lower()] = reply.strip()
 
+# 🔁 Fetch & Suggest
 if st.button("Fetch Comments and Suggest Replies"):
     if not keyword_reply_dict:
-        st.warning("Please enter at least one valid keyword and reply pair.")
+        st.warning("⚠️ Please enter at least one keyword and reply pair.")
     else:
-        with st.spinner("Fetching YouTube comments..."):
+        with st.spinner("🔄 Fetching comments..."):
             try:
                 comments = get_comments(video_id)
                 st.success(f"✅ Fetched {len(comments)} comments")
@@ -76,6 +91,7 @@ if st.button("Fetch Comments and Suggest Replies"):
 
                 st.info(f"💡 Found {len(suggestions)} matching comments")
                 if suggestions:
+                    st.subheader("🧠 Suggested Replies")
                     for i, (comment, reply) in enumerate(suggestions, 1):
                         st.markdown(f"**Comment {i}:** {comment}")
                         st.markdown(f"👉 **Your Reply:** {reply}")
