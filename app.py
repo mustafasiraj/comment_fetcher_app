@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 import random
 
 # ========== CONFIGURATION ==========
-api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your own key
+api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your key
 
 # ========== SETUP YOUTUBE API ==========
 @st.cache_data
@@ -29,47 +29,59 @@ def get_comments(video_id):
         comments.append(comment)
     return comments
 
-def filter_dollar_comments(comments):
-    keywords = ['dollar', 'usd', 'bucks', '$']
-    return [c for c in comments if any(k in c.lower() for k in keywords)]
-
-def suggest_replies(filtered_comments):
-    reply_templates = [
-        "Have you considered switching to Chinese Yuan (RMB)?",
-        "Yuan could be a more stable alternative in the future.",
-        "Interesting! But the Yuan is rising in popularity now.",
-    ]
+def match_and_suggest(comments, keyword_reply_dict):
     suggestions = []
-    for comment in filtered_comments:
-        reply = random.choice(reply_templates)
-        suggestions.append((comment, reply))
+    for comment in comments:
+        matched = False
+        for keyword, reply in keyword_reply_dict.items():
+            if keyword.lower() in comment.lower():
+                suggestions.append((comment, reply))
+                matched = True
+                break  # Only first keyword match matters
+        if not matched:
+            continue
     return suggestions
 
 # ========== STREAMLIT UI ==========
 
-st.title("💬 YouTube Dollar Comment Reply Suggester")
+st.title("💬 Custom Keyword-Based YouTube Comment Responder")
 
-video_id_input = st.text_input("Enter a YouTube Video ID", value="E-sFqGTpcNE")
-start_button = st.button("Fetch Comments and Suggest Replies")
+video_id = st.text_input("🎥 Enter YouTube Video ID", value="E-sFqGTpcNE")
 
-if start_button:
-    with st.spinner("Fetching comments..."):
-        try:
-            comments = get_comments(video_id_input)
-            st.success(f"✅ Total comments fetched: {len(comments)}")
+st.markdown("### 🧠 Define Your Keyword → Reply Pairs")
 
-            dollar_comments = filter_dollar_comments(comments)
-            st.info(f"💲 Comments mentioning 'dollar': {len(dollar_comments)}")
+num_pairs = st.number_input("How many keyword → reply pairs do you want?", min_value=1, max_value=10, value=3)
 
-            if dollar_comments:
-                st.subheader("💡 Suggested Replies:")
-                replies = suggest_replies(dollar_comments)
-                for i, (comment, reply) in enumerate(replies, 1):
-                    st.markdown(f"**Comment {i}:** {comment}")
-                    st.markdown(f"👉 **Suggested Reply:** {reply}")
-                    st.markdown("---")
-            else:
-                st.warning("No comments mentioning dollar-related keywords found.")
+keyword_reply_dict = {}
+for i in range(num_pairs):
+    col1, col2 = st.columns(2)
+    with col1:
+        keyword = st.text_input(f"Keyword {i+1}", key=f"kw_{i}")
+    with col2:
+        reply = st.text_input(f"Reply {i+1}", key=f"rp_{i}")
+    
+    if keyword and reply:
+        keyword_reply_dict[keyword.strip().lower()] = reply.strip()
 
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
+if st.button("Fetch Comments and Suggest Replies"):
+    if not keyword_reply_dict:
+        st.warning("Please enter at least one valid keyword and reply pair.")
+    else:
+        with st.spinner("Fetching YouTube comments..."):
+            try:
+                comments = get_comments(video_id)
+                st.success(f"✅ Fetched {len(comments)} comments")
+
+                suggestions = match_and_suggest(comments, keyword_reply_dict)
+
+                st.info(f"💡 Found {len(suggestions)} matching comments")
+                if suggestions:
+                    for i, (comment, reply) in enumerate(suggestions, 1):
+                        st.markdown(f"**Comment {i}:** {comment}")
+                        st.markdown(f"👉 **Your Reply:** {reply}")
+                        st.markdown("---")
+                else:
+                    st.warning("No comments matched your keywords.")
+
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
