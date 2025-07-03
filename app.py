@@ -4,7 +4,9 @@ import random
 import re
 
 # ========== CONFIGURATION ==========
-api_key = "AIzaSyALyIPnPGZGXUdJbz8H9ldVFVjixCLz9tY"  # Replace with your key
+# api_key = ""  # Replace with your key
+api_key = st.secrets["youtube_api_key"]
+
 
 # ========== SETUP YOUTUBE API ==========
 @st.cache_data
